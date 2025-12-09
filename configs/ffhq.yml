@@ -8,12 +8,12 @@ training:
   log_all_sigmas: false
 
 sampling:
-  batch_size: 36
+  batch_size: 8
   data_init: false
   step_lr: 0.0000009
   n_steps_each: 3
   ckpt_id: 80000
-  final_only: true
+  final_only: false
   fid: false
   denoise: true
   num_samples4fid: 10000
@@ -48,7 +48,7 @@ data:
   num_workers: 8
 
 model:
-  sigma_begin: 348
+  sigma_begin: 1
   num_classes: 2311
   ema: true
   ema_rate: 0.999
