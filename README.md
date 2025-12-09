@@ -7,14 +7,47 @@ By Hamza El Abdouni and Oussama ZOUHRY.
 
 
 ## Setup
-1. Create venv 
-2. 'pip install -r requirements.txt' 
-
-
+1. Create a virtual environment with python `3.10.18`
+2. `pip install torch==1.12.1 torchvision==0.13.1 --index-url https://download.pytorch.org/whl/cu113`
+2. Install requirements with `pip install -r requirements.txt` 
 
 
 <!-- We add what we do in the project here -->
 
+<!-- glob2==0.6
+h5py==2.8.0
+imageio==2.3.0
+numba==0.38.0
+numpydoc==0.8.0
+pathlib2==2.3.2
+pdbpp==0.10.2
+pep8==1.7.1
+pkginfo==1.4.2
+protobuf==3.8.0
+protobuf3-to-dict==0.1.5
+requests==2.23.0
+requests-kerberos==0.12.0
+requests-oauthlib==1.3.0
+retrying==1.3.3
+rope==0.11.0
+rsa==4.0
+ruamel-yaml==0.15.87
+scikit-image==0.19.1
+scikit-learn==0.22.1
+seaborn==0.8.1
+Sphinx==1.7.4
+sphinxcontrib-websupport==1.0.1
+tensorboard==2.2.1
+tensorboard-plugin-wit==1.7.0
+tornado==5.0.2
+typing==3.6.4
+unicodecsv==0.14.1
+urllib3==1.24.2
+xlrd==1.1.0
+XlsxWriter==1.0.4
+xlwt==1.3.0
+zict==0.1.3
+zipp==3.0.0 -->
 
 <!-- 
 We significantly improve the method proposed in [Generative Modeling by Estimating Gradients of the Data Distribution](https://arxiv.org/abs/1907.05600). Score-based generative models are flexible neural networks trained to capture the score function of an underlying data distribution—a vector field pointing to directions where the data density increases most rapidly. We present new techniques to improve the performance of score-based generative models, scaling them to *high resolution images* that are previously impossible. *Without requiring adversarial training*, they can produce sharp and diverse image samples that rival GANs.
