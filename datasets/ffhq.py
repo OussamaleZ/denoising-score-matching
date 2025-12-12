@@ -36,6 +36,6 @@ class FFHQ(Dataset):
         buffer = BytesIO(img_bytes)
         img = Image.open(buffer)
         img = self.transform(img)
-        target = 0
+        target = 0 # because ffhq has no labels
 
         return img, target
