@@ -55,6 +55,10 @@ def load_state_dict(ckpt_path: Path) -> Dict[str, torch.Tensor]:
     return ckpt
 
 
+def build_model(cfg: SimpleNamespace) -> MLP:
+    return MLP(cfg)
+
+
 def resolve_checkpoint(args: argparse.Namespace, config: SimpleNamespace) -> Path:
     if args.ckpt:
         path = Path(args.ckpt)
@@ -88,6 +92,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main():
+    minx, maxx = -5.0, 6.0
+    miny, maxy = -5.0, 6.0
+
     args = parse_args()
     cfg = load_config(resolve_config_path(args.config))
     ckpt_path = resolve_checkpoint(args, cfg)
@@ -97,8 +104,8 @@ def main():
     model.load_state_dict(state_dict, strict=False)
     model.eval()
 
-    xs = torch.linspace(-1.0, 2.0, args.n)
-    ys = torch.linspace(-1.0, 2.0, args.n)
+    xs = torch.linspace(minx, maxx, args.n)
+    ys = torch.linspace(miny, maxy, args.n)
     grid = torch.stack(torch.meshgrid(xs, ys, indexing="ij"), dim=-1).reshape(-1, 2)
 
     with torch.no_grad():
@@ -110,12 +117,12 @@ def main():
     im = ax.imshow(
         norms.numpy(),
         origin="lower",
-        extent=[-1, 2, -1, 2],
+        extent=[minx, maxx, miny, maxy],
         cmap="viridis",
         aspect="equal",
     )
     fig.colorbar(im, ax=ax, label=r"$\|\mathrm{MLP}(x)\|$")
-    ax.set(xlabel="x", ylabel="y", title="MLP output norm on [-1,2]×[-1,2]")
+    ax.set(xlabel="x", ylabel="y", title="MLP output norm on [{minx},{maxx}]×[{miny},{maxy}]".format(minx=minx, maxx=maxx, miny=miny, maxy=maxy))
     fig.tight_layout()
     Path(args.out).expanduser().parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.out, dpi=200)
