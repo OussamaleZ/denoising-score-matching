@@ -5,6 +5,7 @@ from torchvision.datasets import CIFAR10, LSUN
 from datasets.celeba import CelebA
 from datasets.ffhq import FFHQ
 from torch.utils.data import Subset
+from datasets.uniform_2d import Uniform2D_Finite, Uniform2D_Online
 import numpy as np
 
 def get_dataset(args, config):
@@ -100,6 +101,14 @@ def get_dataset(args, config):
         train_indices, test_indices = indices[:int(num_items * 0.9)], indices[int(num_items * 0.9):]
         test_dataset = Subset(dataset, test_indices)
         dataset = Subset(dataset, train_indices)
+
+    elif config.data.dataset == 'Uniform2D':
+        n_samples = getattr(config.data, 'n_samples', 10000)
+        n_test_samples = getattr(config.data, 'n_test_samples', 2000)
+        test_seed = getattr(config.data, 'test_seed', 42)
+
+        dataset = Uniform2D_Online(n_samples=n_samples, transform=None)
+        test_dataset = Uniform2D_Finite(n_samples=n_test_samples, transform=None, seed=test_seed)
 
     return dataset, test_dataset
 

@@ -1,9 +1,9 @@
 training:
   batch_size: 2048
   n_epochs: 100000
-  n_iters: 200001
+  n_iters: 200000
   snapshot_freq: 2000
-  snapshot_sampling: true
+  snapshot_sampling: false
   anneal_power: 2
   log_all_sigmas: true
 
@@ -30,10 +30,24 @@ data:
   dataset: "Uniform2D"
   data_dim: 2
   support: "[0,1]^2"
+  image_size: 1
+  channels: 2
+  uniform_dequantization: false
+  gaussian_dequantization: false
+  logit_transform: false
+  random_flip: false
   rescaled: false
   num_workers: 2
+  n_samples: 100000
+  n_test_samples: 5000
+  test_seed: 42
 
 model:
+  type: mlp
+  input_dim: 2
+  hidden_dim: 256
+  output_dim: 2
+  num_layers: 4
   sigma_begin: 1.0
   sigma_end: 0.01
   sigma_dist: geometric
@@ -43,8 +57,6 @@ model:
   spec_norm: false
   normalization: None
   nonlinearity: swish
-  hidden_dim: 256
-  n_layers: 4
 
 optim:
   optimizer: "Adam"
@@ -53,4 +65,4 @@ optim:
   beta2: 0.999
   weight_decay: 0.0
   amsgrad: false
-  eps: 1e-8
+  eps: 0.0001
