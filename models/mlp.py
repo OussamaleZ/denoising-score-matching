@@ -1,18 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from . import get_sigmas
 
 
 class MLP(nn.Module):
     def __init__(self, config):
         super(MLP, self).__init__()
-
         self.config = config
         
         self.input_dim = config.model.input_dim
         self.hidden_dim = config.model.hidden_dim
         self.output_dim = config.model.output_dim
         self.num_layers = config.model.num_layers
+
+        self.register_buffer('sigmas', get_sigmas(config))
 
         layers = []
         layers.append(nn.Linear(self.input_dim, self.hidden_dim))
@@ -27,4 +29,8 @@ class MLP(nn.Module):
         self.network = nn.Sequential(*layers)
     
     def forward(self, x, y=None):
-        return self.network(x)
+        output = self.network(x)
+        used_sigmas = self.sigmas[y].view(x.shape[0], *([1] * len(x.shape[1:])))
+        output = output / used_sigmas
+    
+        return output

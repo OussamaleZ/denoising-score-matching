@@ -1,19 +1,19 @@
 training:
-  batch_size: 32
+  batch_size: 1
   n_epochs: 500000
-  n_iters: 80001
-  snapshot_freq: 5000
-  snapshot_sampling: true
+  n_iters: 100001
+  snapshot_freq: 1000
+  snapshot_sampling: false
   anneal_power: 2
   log_all_sigmas: false
 
 sampling:
-  batch_size: 8
+  batch_size: 1
   data_init: false
   step_lr: 0.0000009
   n_steps_each: 3
-  ckpt_id: 80000
-  final_only: false
+  ckpt_id: 99000
+  final_only: true
   fid: false
   denoise: true
   num_samples4fid: 10000
@@ -34,7 +34,7 @@ fast_fid:
 test:
   begin_ckpt: 5000
   end_ckpt: 80000
-  batch_size: 100
+  batch_size: 1
 
 data:
   dataset: "FFHQ"
@@ -45,7 +45,7 @@ data:
   gaussian_dequantization: false
   random_flip: true
   rescaled: false
-  num_workers: 8
+  num_workers: 24
 
 model:
   sigma_begin: 1

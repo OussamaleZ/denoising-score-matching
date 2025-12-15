@@ -8,11 +8,11 @@ training:
   log_all_sigmas: false
 
 sampling:
-  batch_size: 100
+  batch_size: 1
   data_init: false
   step_lr: 0.0000062
   n_steps_each: 5
-  ckpt_id: 30001
+  ckpt_id: 90000
   final_only: true
   fid: false
   denoise: true
