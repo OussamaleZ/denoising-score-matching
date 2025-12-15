@@ -5,25 +5,26 @@ from torchvision.datasets import CIFAR10, LSUN
 from datasets.celeba import CelebA
 from datasets.ffhq import FFHQ
 from torch.utils.data import Subset
-from datasets.uniform_2d import Uniform2D_Finite, Uniform2D_Online
+from datasets.uniform_2d import Uniform2D
 import numpy as np
 
 def get_dataset(args, config):
-    if config.data.random_flip is False:
-        tran_transform = test_transform = transforms.Compose([
-            transforms.Resize(config.data.image_size),
-            transforms.ToTensor()
-        ])
-    else:
-        tran_transform = transforms.Compose([
-            transforms.Resize(config.data.image_size),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor()
-        ])
-        test_transform = transforms.Compose([
-            transforms.Resize(config.data.image_size),
-            transforms.ToTensor()
-        ])
+    if not hasattr(config.data, 'is_not_image'):
+        if config.data.random_flip is False:
+            tran_transform = test_transform = transforms.Compose([
+                transforms.Resize(config.data.image_size),
+                transforms.ToTensor()
+            ])
+        else:
+            tran_transform = transforms.Compose([
+                transforms.Resize(config.data.image_size),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor()
+            ])
+            test_transform = transforms.Compose([
+                transforms.Resize(config.data.image_size),
+                transforms.ToTensor()
+            ])
 
     if config.data.dataset == 'CIFAR10':
         dataset = CIFAR10(os.path.join(args.exp, 'datasets', 'cifar10'), train=True, download=True,
@@ -103,12 +104,8 @@ def get_dataset(args, config):
         dataset = Subset(dataset, train_indices)
 
     elif config.data.dataset == 'Uniform2D':
-        n_samples = getattr(config.data, 'n_samples', 10000)
-        n_test_samples = getattr(config.data, 'n_test_samples', 2000)
-        test_seed = getattr(config.data, 'test_seed', 42)
-
-        dataset = Uniform2D_Online(n_samples=n_samples, transform=None)
-        test_dataset = Uniform2D_Finite(n_samples=n_test_samples, transform=None, seed=test_seed)
+        dataset = Uniform2D(xmin=config.data.xmin, xmax=config.data.xmax, ymin= config.data.ymin, ymax= config.data.ymax, n_samples=config.data.n_samples, grid= config.data.grid, grid_res=config.data.grid_res)
+        test_dataset = Uniform2D(xmin=config.data.xmin, xmax=config.data.xmax, ymin= config.data.ymin, ymax= config.data.ymax, n_samples=config.data.n_test_samples, grid= config.data.test_grid, grid_res=config.data.test_grid_res)
 
     return dataset, test_dataset
 
@@ -117,18 +114,19 @@ def logit_transform(image, lam=1e-6):
     return torch.log(image) - torch.log1p(-image)
 
 def data_transform(config, X):
-    if config.data.uniform_dequantization:
-        X = X / 256. * 255. + torch.rand_like(X) / 256.
-    if config.data.gaussian_dequantization:
-        X = X + torch.randn_like(X) * 0.01
+    if not hasattr(config.data, 'is_not_image'):
+        if config.data.uniform_dequantization:
+            X = X / 256. * 255. + torch.rand_like(X) / 256.
+        if config.data.gaussian_dequantization:
+            X = X + torch.randn_like(X) * 0.01
 
-    if config.data.rescaled:
-        X = 2 * X - 1.
-    elif config.data.logit_transform:
-        X = logit_transform(X)
+        if config.data.rescaled:
+            X = 2 * X - 1.
+        elif config.data.logit_transform:
+            X = logit_transform(X)
 
-    if hasattr(config, 'image_mean'):
-        return X - config.image_mean.to(X.device)[None, ...]
+        if hasattr(config, 'image_mean'):
+            return X - config.image_mean.to(X.device)[None, ...]
 
     return X
 

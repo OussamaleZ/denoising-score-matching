@@ -110,6 +110,7 @@ def main():
 
     with torch.no_grad():
         outputs = model(grid)
+        
     outputs = outputs if outputs.ndim > 1 else outputs[:, None]
     norms = torch.linalg.norm(outputs, dim=1).reshape(args.n, args.n).cpu()
 

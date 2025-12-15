@@ -36,34 +36,47 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ckpt-id", type=int, default=None, help="Checkpoint suffix after checkpoint_.")
     parser.add_argument("--ckpt", default=None, help="Direct path to a checkpoint.")
     parser.add_argument("--n", type=int, default=32, help="Grid size per axis (controls number of arrows).")
-    parser.add_argument("--out", default="mlp_gradient_flow.png", help="Output image path.")
+    parser.add_argument("--device", default="cpu", help="Device for model and inference (cpu|cuda).")
+    parser.add_argument("--out", default="figures/mlp_gradient_flow.png", help="Output image path.")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    minx, maxx = -5.0, 6.0
-    miny, maxy = -5.0, 6.0
+
+    device = torch.device(args.device)
 
     cfg_path = resolve_config_path(args.config)
     cfg = load_config(cfg_path)
+    # ensure config carries a torch.device for functions that expect it
+    cfg.device = device
     ckpt_path = resolve_checkpoint(args, cfg)
     state_dict = load_state_dict(ckpt_path)
 
-    model = build_model(cfg)
+    model = build_model(cfg).to(device)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
+
+    # use config bounds when available
+    minx = getattr(cfg.data, "xmin", 0) - 1
+    maxx = getattr(cfg.data, "xmax", 1) + 1
+    miny = getattr(cfg.data, "ymin", 0) - 1
+    maxy = getattr(cfg.data, "ymax", 1) + 1
 
     xs = torch.linspace(minx, maxx, args.n)
     ys = torch.linspace(miny, maxy, args.n)
     X, Y = torch.meshgrid(xs, ys, indexing="ij")
-    pts = torch.stack([X.reshape(-1), Y.reshape(-1)], dim=1)
+    pts = torch.stack([X.reshape(-1), Y.reshape(-1)], dim=1).to(device)
 
     with torch.no_grad():
-        outputs = model(pts)
+        # noise level is 1
+        labels = 0 * torch.ones(pts.shape[0], device=device)
+        labels = labels.long()
+        outputs = model(pts, labels)
+
     outputs = outputs if outputs.ndim > 1 else outputs[:, None]
-    U = outputs[:, 0].reshape(args.n, args.n).cpu().numpy()
-    V = outputs[:, 1].reshape(args.n, args.n).cpu().numpy()
+    U = outputs[:, 0].cpu().numpy().reshape(args.n, args.n)
+    V = outputs[:, 1].cpu().numpy().reshape(args.n, args.n)
 
     magnitudes = np.hypot(U, V)
     Z = np.zeros_like(U)
@@ -72,21 +85,11 @@ def main():
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(111, projection="3d")
     norm = plt.Normalize(vmin=magnitudes.min(), vmax=magnitudes.max())
+    # flatten arrays for quiver
+    Xf, Yf = X.numpy().ravel(), Y.numpy().ravel()
+    Uf, Vf = U.ravel(), V.ravel()
     colors = plt.cm.viridis(norm(magnitudes)).reshape(-1, 4)
-    ax.quiver(
-        X.numpy(),
-        Y.numpy(),
-        Z,
-        U,
-        V,
-        W,
-        length=0.5,
-        pivot="middle",
-        arrow_length_ratio=0.3,
-        color=colors,
-        linewidth=0.7,
-        normalize=False,
-    )
+    ax.quiver(Xf, Yf, Z.ravel(), Uf, Vf, W.ravel(), length=0.5, pivot="middle", color=colors, linewidth=0.7)
 
     mappable = plt.cm.ScalarMappable(cmap="viridis")
     mappable.set_array(magnitudes)

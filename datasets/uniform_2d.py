@@ -1,47 +1,25 @@
-from torch.utils.data import Dataset
 import torch
-import math
+from torch.utils.data import Dataset
+import numpy as np
 
-class Uniform2D_Finite(Dataset):
-    """
-    Fixed finite dataset: x_1,...,x_N i.i.d. ~ Uniform([0,1]^2).
-    Represents the empirical measure over these N samples.
-    """
-    def __init__(self, n_samples=10000, transform=None, seed=None):
-        self.n_samples = n_samples
-        self.transform = transform
-
-        g = None
-        if seed is not None:
-            g = torch.Generator().manual_seed(seed)
-
-        self.data = torch.rand(n_samples, 2, generator=g) # of shape (n_samples, 2)
-
-    def __len__(self):
-        return self.n_samples
-
-    def __getitem__(self, idx):
-        x = self.data[idx]
-        if self.transform:
-            x = self.transform(x)
-        return x, 0
-    
-
-class Uniform2D_Online(Dataset):
-    """
-    Dataset of i.i.d. samples drawn from the uniform distribution on [0,1]^2.
-    Samples are generated online in __getitem__.
-    """
-
-    def __init__(self, n_samples=10000, transform=None):
-        self.n_samples = n_samples
-        self.transform = transform
-
-    def __len__(self):
-        return self.n_samples
-
-    def __getitem__(self, index):
-        sample = torch.rand(2)  # ~ Uniform([0,1]^2)
-        if self.transform:
-            sample = self.transform(sample)
-        return sample, 0
+class Uniform2D(Dataset):
+    def __init__(self, xmin=0, xmax=1, ymin=0, ymax=1, n_samples=100000, grid=False, grid_res=200, seed=None):
+        self.xmin, self.xmax, self.ymin, self.ymax = xmin, xmax, ymin, ymax
+        self.seed = seed
+        rng = np.random.RandomState(seed)
+        if grid:
+            xs = np.linspace(xmin, xmax, grid_res)
+            ys = np.linspace(ymin, ymax, grid_res)
+            X, Y = np.meshgrid(xs, ys, indexing='xy')
+            pts = np.stack([X.ravel(), Y.ravel()], axis=-1).astype(np.float32)
+            self.data = torch.from_numpy(pts)[:n_samples]
+        else:
+            samples = rng.rand(n_samples, 2).astype(np.float32)
+            samples[:,0] = samples[:,0] * (xmax-xmin) + xmin
+            samples[:,1] = samples[:,1] * (ymax-ymin) + ymin
+            self.data = torch.from_numpy(samples)
+    def __len__(self): 
+        return len(self.data)
+    def __getitem__(self, idx): 
+        # Return a dummy label so DataLoader yields (X, y) tuples like other datasets
+        return self.data[idx], 0

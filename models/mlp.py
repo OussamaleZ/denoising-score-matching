@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from . import get_sigmas
 
-
 class MLP(nn.Module):
     def __init__(self, config):
         super(MLP, self).__init__()
@@ -28,7 +27,16 @@ class MLP(nn.Module):
 
         self.network = nn.Sequential(*layers)
     
-    def forward(self, x, y=None):
+    def forward(self, x, y):
+        """
+        Forward pass of the MLP model.
+
+        Input:
+        param x: of shape (B, input_dim)
+        param y: of shape (B,) representing the noise levels we are conditioning on
+        
+        output: of shape (B, output_dim)
+        """
         output = self.network(x)
         used_sigmas = self.sigmas[y].view(x.shape[0], *([1] * len(x.shape[1:])))
         output = output / used_sigmas

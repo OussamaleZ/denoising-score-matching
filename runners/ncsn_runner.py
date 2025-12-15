@@ -47,7 +47,8 @@ class NCSNRunner():
         test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
                                  num_workers=self.config.data.num_workers, drop_last=True)
         test_iter = iter(test_loader)
-        self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
+        if not hasattr(self.config.data, 'is_not_image'):
+            self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
 
         tb_logger = self.config.tb_logger
 
@@ -119,7 +120,8 @@ class NCSNRunner():
                 step += 1
 
                 X = X.to(self.config.device)
-                X = data_transform(self.config, X)
+                if not hasattr(self.config.data, 'is_not_image'):
+                    X = data_transform(self.config, X)
 
                 loss = anneal_dsm_score_estimation(score, X, sigmas, None,
                                                    self.config.training.anneal_power,
