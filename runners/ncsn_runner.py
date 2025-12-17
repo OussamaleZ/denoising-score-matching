@@ -12,6 +12,8 @@ from torch.utils.data import DataLoader
 from models.ncsnv2 import NCSNv2Deeper, NCSNv2, NCSNv2Deepest
 from models.ncsn import NCSN, NCSNdeeper
 from models.mlp import MLP
+from models.mlp_1d import MLP1D 
+from models.mlp_2d import MLP2D
 from datasets import get_dataset, data_transform, inverse_data_transform
 from losses import get_optimizer
 from models import (anneal_Langevin_dynamics,
@@ -32,6 +34,10 @@ def get_model(config):
         return NCSNv2Deeper(config).to(config.device)
     elif config.data.dataset == 'Uniform2D':
         return MLP(config).to(config.device)
+    elif config.data.dataset == 'StudentMixture2D':
+        return MLP2D(config).to(config.device)
+    elif config.data.dataset =='Uniform1D':
+        return MLP1D(config).to(config.device)
 
 class NCSNRunner():
     def __init__(self, args, config):

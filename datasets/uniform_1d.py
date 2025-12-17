@@ -1,28 +1,46 @@
 from torch.utils.data import Dataset
 import torch
 
-class Uniform1D(Dataset):
+class Uniform1D_Finite(Dataset):
     """
-    Synthetic dataset that supplies samples drawn uniformly from [0, 1].
+    Fixed finite dataset: x_1,...,x_N i.i.d. ~ Uniform([0,1]).
+    Represents the empirical measure over these N samples.
     """
-
-    def __init__(self, num_samples=1000, transform=None, seed=None):
-        self.num_samples = num_samples
+    def __init__(self, n_samples=10000, transform=None, seed=None):
+        self.n_samples = n_samples
         self.transform = transform
 
+        g = None
         if seed is not None:
-            rng_state = torch.get_rng_state()
-            torch.manual_seed(seed)
-            self.data = torch.rand(num_samples, 1)
-            torch.set_rng_state(rng_state)
-        else:
-            self.data = torch.rand(num_samples, 1)
+            g = torch.Generator().manual_seed(seed)
+
+        self.data = torch.rand(n_samples, 1, generator=g)  # of shape (n_samples, 1)
 
     def __len__(self):
-        return self.num_samples
+        return self.n_samples
+
+    def __getitem__(self, idx):
+        x = self.data[idx]
+        if self.transform:
+            x = self.transform(x)
+        return x, 0
+
+
+class Uniform1D_Online(Dataset):
+    """
+    Dataset of i.i.d. samples drawn from the uniform distribution on [0,1].
+    Samples are generated online in __getitem__.
+    """
+
+    def __init__(self, n_samples=10000, transform=None):
+        self.n_samples = n_samples
+        self.transform = transform
+
+    def __len__(self):
+        return self.n_samples
 
     def __getitem__(self, index):
-        sample = self.data[index]
+        sample = torch.rand(1)  # ~ Uniform([0,1])
         if self.transform:
             sample = self.transform(sample)
         return sample, 0

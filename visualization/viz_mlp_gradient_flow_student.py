@@ -15,11 +15,11 @@ import numpy as np
 import torch
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from ncsnv2.visualization.viz_mlp_norm_2d import (
+from visualization.viz_mlp_norm_2d import (
     build_model,
     load_config,
     load_state_dict,
@@ -29,22 +29,26 @@ from ncsnv2.visualization.viz_mlp_norm_2d import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="3D vector flow for MLP outputs.")
-    parser.add_argument("--config", default="uniform_2d.yml", help="Config file name or path.")
-    parser.add_argument("--exp", default="/Data/ncsnv2_checkpoints/exp/exp", help="Experiment root.")
+    parser = argparse.ArgumentParser(description="3D vector flow for MLP2D outputs.")
+    parser.add_argument("--config", default="student_mixture_2d.yml", help="Config file name or path.")
+    parser.add_argument("--exp", default="experiments", help="Experiment root.")
     parser.add_argument("--doc", default=None, help="Run name under logs/. Defaults to config stem.")
     parser.add_argument("--ckpt-id", type=int, default=None, help="Checkpoint suffix after checkpoint_.")
     parser.add_argument("--ckpt", default=None, help="Direct path to a checkpoint.")
-    parser.add_argument("--n", type=int, default=32, help="Grid size per axis (controls number of arrows).")
-    parser.add_argument("--device", default="cpu", help="Device for model and inference (cpu|cuda).")
+    parser.add_argument("--n", type=int, default=20, help="Grid size per axis (controls number of arrows).")
+    parser.add_argument("--device", default=None, help="Device for model and inference (cpu|cuda). Auto-detect if None.")
     parser.add_argument("--out", default="figures/mlp_gradient_flow.png", help="Output image path.")
+    parser.add_argument("--sigma-idx", type=int, default=0, help="Noise level index (0 = highest noise).")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    device = torch.device(args.device)
+    if args.device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    else:
+        device = torch.device(args.device)
 
     cfg_path = resolve_config_path(args.config)
     cfg = load_config(cfg_path)
@@ -55,13 +59,21 @@ def main():
 
     model = build_model(cfg).to(device)
     model.load_state_dict(state_dict, strict=False)
+    
+    # Gérer EMA si présent
+    states = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+    if cfg.model.ema and len(states) > 4:
+        from models.ema import EMAHelper
+        ema = EMAHelper(mu=cfg.model.ema_rate)
+        ema.register(model)
+        ema.load_state_dict(states[-1])
+        ema.ema(model)
+    
     model.eval()
 
-    # use config bounds when available
-    minx = getattr(cfg.data, "xmin", 0) - 1
-    maxx = getattr(cfg.data, "xmax", 1) + 1
-    miny = getattr(cfg.data, "ymin", 0) - 1
-    maxy = getattr(cfg.data, "ymax", 1) + 1
+    # Limites fixes pour student_mixture_2d
+    minx, maxx = -10.0, 20.0
+    miny, maxy = -10.0, 20.0
 
     xs = torch.linspace(minx, maxx, args.n)
     ys = torch.linspace(miny, maxy, args.n)
@@ -69,9 +81,8 @@ def main():
     pts = torch.stack([X.reshape(-1), Y.reshape(-1)], dim=1).to(device)
 
     with torch.no_grad():
-        # noise level is 1
-        labels = 0 * torch.ones(pts.shape[0], device=device)
-        labels = labels.long()
+        # Noise level index
+        labels = torch.full((pts.shape[0],), args.sigma_idx, dtype=torch.long, device=device)
         outputs = model(pts, labels)
 
     outputs = outputs if outputs.ndim > 1 else outputs[:, None]
@@ -89,19 +100,19 @@ def main():
     Xf, Yf = X.numpy().ravel(), Y.numpy().ravel()
     Uf, Vf = U.ravel(), V.ravel()
     colors = plt.cm.viridis(norm(magnitudes)).reshape(-1, 4)
-    ax.quiver(Xf, Yf, Z.ravel(), Uf, Vf, W.ravel(), length=0.5, pivot="middle", color=colors, linewidth=0.7)
+    ax.quiver(Xf, Yf, Z.ravel(), Uf, Vf, W.ravel(), length=2, arrow_length_ratio=0.05, pivot="middle", color=colors, linewidth=0.7)
 
     mappable = plt.cm.ScalarMappable(cmap="viridis")
     mappable.set_array(magnitudes)
-    fig.colorbar(mappable, ax=ax, label="||MLP(x)||")
+    fig.colorbar(mappable, ax=ax, label="||MLP2D(x)||")
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
-    ax.set_title("MLP vector field over [{minx},{maxx}]×[{miny},{maxy}]".format(minx=minx, maxx=maxx, miny=miny, maxy=maxy))
+    ax.set_title("MLP2D vector field over [{minx},{maxx}]×[{miny},{maxy}] (σ_idx={sigma_idx})".format(minx=minx, maxx=maxx, miny=miny, maxy=maxy, sigma_idx=args.sigma_idx))
     ax.set_xlim(minx, maxx)
     ax.set_ylim(miny, maxy)
-    ax.set_zlim(0, 1)
+    ax.set_zlim(0, 0.6)
 
     Path(args.out).expanduser().parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()

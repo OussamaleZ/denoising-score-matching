@@ -6,6 +6,8 @@ from datasets.celeba import CelebA
 from datasets.ffhq import FFHQ
 from torch.utils.data import Subset
 from datasets.uniform_2d import Uniform2D
+from datasets.uniform_1d import Uniform1D_Finite, Uniform1D_Online
+from datasets.student_mixture_2d import StudentMixture2D_Finite, StudentMixture2D_Online
 import numpy as np
 
 def get_dataset(args, config):
@@ -106,6 +108,24 @@ def get_dataset(args, config):
     elif config.data.dataset == 'Uniform2D':
         dataset = Uniform2D(xmin=config.data.xmin, xmax=config.data.xmax, ymin= config.data.ymin, ymax= config.data.ymax, n_samples=config.data.n_samples, grid= config.data.grid, grid_res=config.data.grid_res)
         test_dataset = Uniform2D(xmin=config.data.xmin, xmax=config.data.xmax, ymin= config.data.ymin, ymax= config.data.ymax, n_samples=config.data.n_test_samples, grid= config.data.test_grid, grid_res=config.data.test_grid_res)
+
+    elif config.data.dataset == 'Uniform1D':
+        n_samples = getattr(config.data, 'n_samples', 10000)
+        n_test_samples = getattr(config.data, 'n_test_samples', 2000)
+        test_seed = getattr(config.data, 'test_seed', 42)
+
+        dataset = Uniform1D_Online(n_samples=n_samples, transform=None)
+        test_dataset = Uniform1D_Finite(n_samples=n_test_samples, transform=None, seed=test_seed)
+
+    elif config.data.dataset == 'StudentMixture2D':
+        n_samples = getattr(config.data, 'n_samples', 10000)
+        n_test_samples = getattr(config.data, 'n_test_samples', 2000)
+        test_seed = getattr(config.data, 'test_seed', 42)
+        df = getattr(config.data, 'df', 3.0)
+        scale = getattr(config.data, 'scale', 1.0)
+
+        dataset = StudentMixture2D_Online(n_samples=n_samples, transform=None, df=df, scale=scale)
+        test_dataset = StudentMixture2D_Finite(n_samples=n_test_samples, transform=None, seed=test_seed, df=df, scale=scale)
 
     return dataset, test_dataset
 
