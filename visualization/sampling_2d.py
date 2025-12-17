@@ -25,7 +25,6 @@ from ncsnv2.visualization.viz_mlp_norm_2d import (
     resolve_config_path,
 )
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Langevin sampling for 2D MLP score model.")
     parser.add_argument("--config", default="uniform_2d.yml", help="Config file name or path.")
